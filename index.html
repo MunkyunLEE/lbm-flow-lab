@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LBM Flow Lab</title>
 <meta name="description" content="브라우저에서 바로 실행되는 2D 격자 볼츠만(LBM) 유동 시뮬레이터">
+<script>
+(() => {
+  let pref = 'system';
+  try { pref = localStorage.getItem('lbm-theme') || 'system'; } catch (_) {}
+  const light = pref === 'light' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+})();
+</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,6 +27,7 @@
     <select id="selExample" class="hdr-select" title="예제 케이스 불러오기"><option value="">예제 케이스…</option></select>
     <button id="btnSaveCase" class="ghost" title="현재 설정을 JSON으로 저장">케이스 저장</button>
     <label class="ghost btnlike" title="저장한 JSON 불러오기">불러오기<input id="fileCase" type="file" accept=".json" hidden></label>
+    <button id="btnTheme" class="ghost theme-btn" title="테마: 시스템 설정">◐</button>
   </div>
 </header>
 
@@ -27,9 +36,10 @@
 
   <section>
     <h2><span class="num">1</span>격자판</h2>
-    <div class="grid2">
-      <label>한 변 길이 L <em>mm</em><input id="inL" type="number" min="10" step="100" value="10000"></label>
-      <label>분할 수 N <em>N×N</em><input id="inN" type="number" min="20" max="2000" step="10" value="500"></label>
+    <div class="grid3">
+      <label>가로 L<sub>x</sub> <em>mm</em><input id="inLx" type="number" min="10" step="100" value="10000"></label>
+      <label>세로 L<sub>y</sub> <em>mm</em><input id="inLy" type="number" min="10" step="100" value="10000"></label>
+      <label>가로 분할 N<sub>x</sub><input id="inNx" type="number" min="20" max="2000" step="10" value="500"></label>
     </div>
     <p class="readout" id="gridInfo"></p>
   </section>
@@ -55,7 +65,7 @@
   </section>
 
   <section>
-    <h2><span class="num">3</span>장애물 <span class="sub">DXF · mm</span></h2>
+    <h2><span class="num">3</span>객체 <span class="sub">DXF · mm</span></h2>
     <div class="row">
       <label class="btnlike primary-outline">DXF 불러오기<input id="fileDxf" type="file" accept=".dxf" multiple hidden></label>
       <button id="btnSamples" class="ghost">샘플 5종</button>
@@ -69,8 +79,54 @@
       </div>
       <div class="grid3">
         <label>배율<input id="obS" type="number" step="0.05" min="0.01"></label>
-        <span></span>
+        <label>역할
+          <select id="obRole">
+            <option value="solid">고체</option>
+            <option value="inlet">유입 영역</option>
+            <option value="outlet">유출 영역</option>
+          </select>
+        </label>
         <button id="obDel" class="danger">삭제</button>
+      </div>
+      <div id="roleBox" class="subbox hidden"></div>
+      <div id="kinBox" class="subbox">
+        <h4>Kinematics (FSI)</h4>
+        <label>운동
+          <select id="kinMode">
+            <option value="off">OFF · 고정</option>
+            <option value="free">자유 회전 (팬)</option>
+            <option value="hinge">힌지 (스프링)</option>
+            <option value="drive">강제 회전 (rpm)</option>
+          </select>
+        </label>
+        <div id="kinOpts" class="hidden">
+          <div class="pivot-row">
+            <label>회전축 X <em>mm</em><input id="pvX" type="number" step="10"></label>
+            <label>회전축 Y <em>mm</em><input id="pvY" type="number" step="10"></label>
+            <button id="btnPivot" class="ghost" title="캔버스를 클릭해 회전축 지정">⊕ 지정</button>
+          </div>
+          <div class="grid3" id="kinPresets">
+            <label id="lbInertia">관성<select id="kinI"><option value="light">가벼움</option><option value="normal">보통</option><option value="heavy">무거움</option></select></label>
+            <label id="lbSpring">스프링<select id="kinK"><option value="soft">부드러움</option><option value="medium">보통</option><option value="stiff">단단함</option></select></label>
+            <label id="lbDamping">감쇠<select id="kinC"><option value="low">낮음</option><option value="medium">보통</option><option value="high">높음</option></select></label>
+          </div>
+          <div class="grid2" id="kinDrive">
+            <label>회전수 <em>rpm</em><input id="kinRpm" type="number" step="1" value="30"></label>
+            <label>방향<select id="kinDir"><option value="ccw">반시계</option><option value="cw">시계</option></select></label>
+          </div>
+          <details class="adv" id="kinAdv">
+            <summary>고급 설정 (비워 두면 프리셋 사용)</summary>
+            <div class="grid3">
+              <label>관성 I <em>kg·m²/m</em><input id="advI" type="number" step="any"></label>
+              <label>감쇠 c <em>N·m·s/m</em><input id="advC" type="number" step="any"></label>
+              <label>스프링 k <em>N·m/m</em><input id="advK" type="number" step="any"></label>
+            </div>
+            <div class="grid2">
+              <label>최소 각도 <em>°</em><input id="advMin" type="number" step="1"></label>
+              <label>최대 각도 <em>°</em><input id="advMax" type="number" step="1"></label>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
     <p class="hint">캔버스에서 클릭해 선택 · 드래그로 이동 · 위쪽 ◯ 핸들로 회전 · Delete 키로 삭제</p>
@@ -118,13 +174,33 @@
 
   <section>
     <h2><span class="num">6</span>결과 · GIF</h2>
+    <label>표시 필드<select id="inField"><option value="umag">속도 크기 |u|</option><option value="vort">와도 ω</option><option value="pressure">압력 p</option></select></label>
+    <div class="row">
+      <button id="btnEmit" class="ghost toggle" title="결과 화면을 클릭해 입자 방출점 추가">입자 방출점 추가</button>
+      <button id="btnEmitClear" class="ghost">방출점 초기화</button>
+    </div>
     <div class="grid3">
-      <label>표시 필드<select id="inField"><option value="umag">속도 크기 |u|</option><option value="vort">와도 ω</option><option value="pressure">압력 p</option></select></label>
       <label>FPS<input id="inFps" type="number" min="1" max="50" value="15"></label>
       <label>배율<select id="inGifScale"><option value="1">×1</option><option value="2">×2</option></select></label>
+      <span></span>
+    </div>
+    <div class="row">
+      <label class="check"><input id="gifVec" type="checkbox"> 벡터 포함</label>
+      <label class="check"><input id="gifPart" type="checkbox"> 입자 포함</label>
     </div>
     <button id="btnGif" class="primary wide" disabled>GIF 만들기</button>
     <div id="gifBox" class="gifbox hidden"><img id="gifImg" alt="GIF 미리보기"><a id="gifLink" download="lbm.gif">GIF 다운로드</a></div>
+  </section>
+
+  <section>
+    <h2><span class="num">7</span>물체 하중 <span class="sub">단위 깊이당</span></h2>
+    <div class="tablewrap"><table class="loads" id="loadTable"></table></div>
+    <div class="grid2">
+      <label>객체<select id="loadObj"></select></label>
+      <label>항목<select id="loadQty"><option value="fx">F<sub>x</sub> [N/m]</option><option value="fy">F<sub>y</sub> [N/m]</option><option value="m">M [N·m/m]</option><option value="theta">각도 [°]</option><option value="rpm">회전수 [rpm]</option></select></label>
+    </div>
+    <canvas id="loadChart" width="336" height="140"></canvas>
+    <p class="hint">C<sub>d</sub>, C<sub>l</sub>은 최대 유입 속도와 객체 높이(y 방향 크기) 기준입니다. 평균은 해석 후반 50% 구간입니다.</p>
   </section>
 </aside>
 
@@ -137,6 +213,11 @@
     </div>
     <label class="check small"><input id="chkMask" type="checkbox"> 복셀</label>
     <label class="check small"><input id="chkGrid" type="checkbox" checked> 격자선</label>
+    <span class="sep"></span>
+    <label class="check small"><input id="chkVec" type="checkbox"> 벡터</label>
+    <label class="check small"><input id="chkStream" type="checkbox"> 유선</label>
+    <label class="check small"><input id="chkPart" type="checkbox"> 입자</label>
+    <span class="sep"></span>
     <button id="btnFit" class="ghost small">화면 맞춤</button>
   </div>
   <div id="legend" class="legend hidden">
@@ -145,6 +226,7 @@
     <div class="lg-labels"><span id="lgLo"></span><span id="lgHi"></span></div>
     <div class="lg-labels lg-mean"><span id="lgL"></span><span id="lgR"></span></div>
   </div>
+  <div id="modeHint" class="modehint hidden"></div>
   <div id="cursorInfo" class="cursor mono"></div>
   <div id="toast" class="toast hidden"></div>
 </section>

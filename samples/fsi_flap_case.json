@@ -1,0 +1,92 @@
+{
+ "preset": "custom",
+ "nu": 0.01,
+ "rho": 1.2,
+ "les": false,
+ "cs": 0.2,
+ "ramp": 2,
+ "frames": 150,
+ "ulat": 0.08,
+ "sponge": 6,
+ "patches": [],
+ "emitters": [],
+ "Lx": 16000,
+ "Ly": 8000,
+ "Nx": 400,
+ "duration": 25,
+ "edges": {
+  "left": {
+   "type": "velocity",
+   "ux": 1,
+   "uy": 0,
+   "p": 0
+  },
+  "right": {
+   "type": "pressure",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  },
+  "bottom": {
+   "type": "slip",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  },
+  "top": {
+   "type": "slip",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  }
+ },
+ "objects": [
+  {
+   "id": 1,
+   "name": "hinged_flap",
+   "color": "#e4572e",
+   "rot": 0,
+   "scale": 1,
+   "cx": 5000,
+   "cy": 4000,
+   "curves": [
+    {
+     "closed": false,
+     "points": [
+      [
+       0,
+       1000
+      ],
+      [
+       0,
+       -1000
+      ]
+     ]
+    }
+   ],
+   "role": "solid",
+   "inlet": {
+    "mode": "normal",
+    "ux": 1,
+    "uy": 0,
+    "un": 1
+   },
+   "outlet": {
+    "p": 0
+   },
+   "kin": {
+    "mode": "hinge",
+    "pl": [
+     0,
+     1000
+    ],
+    "inertia": "normal",
+    "spring": "medium",
+    "damping": "medium",
+    "rpm": 30,
+    "dir": "ccw",
+    "advanced": {}
+   }
+  }
+ ]
+}

@@ -1,0 +1,212 @@
+{
+ "preset": "custom",
+ "nu": 0.01,
+ "rho": 1.2,
+ "les": false,
+ "cs": 0.2,
+ "ramp": 2,
+ "frames": 150,
+ "ulat": 0.06,
+ "sponge": 6,
+ "patches": [],
+ "emitters": [],
+ "Lx": 16000,
+ "Ly": 8000,
+ "Nx": 400,
+ "duration": 60,
+ "edges": {
+  "left": {
+   "type": "velocity",
+   "ux": 1,
+   "uy": 0,
+   "p": 0
+  },
+  "right": {
+   "type": "pressure",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  },
+  "bottom": {
+   "type": "slip",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  },
+  "top": {
+   "type": "slip",
+   "ux": 0,
+   "uy": 0,
+   "p": 0
+  }
+ },
+ "objects": [
+  {
+   "id": 1,
+   "name": "deflector",
+   "color": "#8d99ae",
+   "rot": 0,
+   "scale": 1,
+   "cx": 3750,
+   "cy": 3425,
+   "curves": [
+    {
+     "closed": true,
+     "points": [
+      [
+       -50,
+       -525
+      ],
+      [
+       50,
+       -525
+      ],
+      [
+       50,
+       525
+      ],
+      [
+       -50,
+       525
+      ]
+     ]
+    }
+   ],
+   "role": "solid",
+   "inlet": {
+    "mode": "normal",
+    "ux": 1,
+    "uy": 0,
+    "un": 1
+   },
+   "outlet": {
+    "p": 0
+   },
+   "kin": {
+    "mode": "off",
+    "pl": [
+     0,
+     0
+    ],
+    "inertia": "normal",
+    "spring": "medium",
+    "damping": "low",
+    "rpm": 30,
+    "dir": "ccw",
+    "advanced": {}
+   }
+  },
+  {
+   "id": 2,
+   "name": "rotor_6blade",
+   "color": "#f3a712",
+   "rot": 0,
+   "scale": 1,
+   "cx": 5000,
+   "cy": 4000,
+   "curves": [
+    {
+     "closed": false,
+     "points": [
+      [
+       147.01,
+       29.8
+      ],
+      [
+       980.067,
+       198.669
+      ]
+     ]
+    },
+    {
+     "closed": false,
+     "points": [
+      [
+       47.697,
+       142.215
+      ],
+      [
+       317.981,
+       948.097
+      ]
+     ]
+    },
+    {
+     "closed": false,
+     "points": [
+      [
+       -99.313,
+       112.414
+      ],
+      [
+       -662.086,
+       749.428
+      ]
+     ]
+    },
+    {
+     "closed": false,
+     "points": [
+      [
+       -147.01,
+       -29.8
+      ],
+      [
+       -980.067,
+       -198.669
+      ]
+     ]
+    },
+    {
+     "closed": false,
+     "points": [
+      [
+       -47.697,
+       -142.215
+      ],
+      [
+       -317.981,
+       -948.097
+      ]
+     ]
+    },
+    {
+     "closed": false,
+     "points": [
+      [
+       99.313,
+       -112.414
+      ],
+      [
+       662.086,
+       -749.428
+      ]
+     ]
+    }
+   ],
+   "role": "solid",
+   "inlet": {
+    "mode": "normal",
+    "ux": 1,
+    "uy": 0,
+    "un": 1
+   },
+   "outlet": {
+    "p": 0
+   },
+   "kin": {
+    "mode": "free",
+    "pl": [
+     0,
+     0
+    ],
+    "inertia": "normal",
+    "spring": "medium",
+    "damping": "low",
+    "rpm": 30,
+    "dir": "ccw",
+    "advanced": {}
+   }
+  }
+ ]
+}

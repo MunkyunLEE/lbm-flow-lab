@@ -87,13 +87,13 @@ export function rasterizeObjects(objects, dxmm, Nx, Ny) {
         polygonCells(pts, dxmm, Nx, Ny, (k) => outlet.set(k, +(obj.outlet?.p || 0)));
       } else if (closed && role === 'inlet') {
         const inl = obj.inlet || {}, mode = inl.mode || 'vector';
-        const [gx, gy] = centroid(pts);
+        const [gx, gy] = centroid(pts), P = perimeter([{ points: pts, closed: true }]), corr = P / (P + 2 * Math.PI * 0.8 * dxmm);
         polygonCells(pts, dxmm, Nx, Ny, (k, X, Y) => {
           if (mode === 'normal') {
             const [bx, by, d] = nearestBoundary(pts, X, Y);
             let nx = bx - X, ny = by - Y, L = Math.hypot(nx, ny);
             if (d < 1e-6 * dxmm || L < 1e-12) { nx = X - gx; ny = Y - gy; L = Math.hypot(nx, ny) || 1; }
-            const un = +(inl.un || 0);
+            const un = +(inl.un || 0) * corr;
             inlet.set(k, [un * nx / L, un * ny / L, 1]);
           } else inlet.set(k, [+(inl.ux || 0), +(inl.uy || 0), 0]);
         });

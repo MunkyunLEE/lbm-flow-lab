@@ -104,23 +104,50 @@ function legendLayer(name, lo, hi, W, H) {
   return { idx, x0, y0, boxW, boxH };
 }
 
-export function makeGif(name, frames, solid, N, fps = 15, scale = 1) {
-  const step = Math.max(Math.floor(frames.length / 20), 1), pool = [];
+export function drawLine(idx, w, h, x0, y0, x1, y1, color) {
+  let x = Math.round(x0), y = Math.round(y0);
+  const xe = Math.round(x1), ye = Math.round(y1), dx = Math.abs(xe - x), dy = -Math.abs(ye - y), sx = x < xe ? 1 : -1, sy = y < ye ? 1 : -1;
+  let err = dx + dy;
+  for (let n = 0; n < 4096; n++) {
+    if (x >= 0 && y >= 0 && x < w && y < h) idx[y * w + x] = color;
+    if (x === xe && y === ye) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x += sx; }
+    if (e2 <= dx) { err += dx; y += sy; }
+  }
+}
+
+export function drawArrow(idx, w, h, x0, y0, x1, y1, color) {
+  drawLine(idx, w, h, x0, y0, x1, y1, color);
+  const a = Math.atan2(y1 - y0, x1 - x0), L = Math.min(5, 0.4 * Math.hypot(x1 - x0, y1 - y0));
+  if (L < 1.5) return;
+  drawLine(idx, w, h, x1, y1, x1 - L * Math.cos(a - 0.5), y1 - L * Math.sin(a - 0.5), color);
+  drawLine(idx, w, h, x1, y1, x1 - L * Math.cos(a + 0.5), y1 - L * Math.sin(a + 0.5), color);
+}
+
+export function overlayColor(name) {
+  return name === 'umag' ? IDX_WHITE : IDX_BLACK;
+}
+
+export function makeGif(name, frames, solid, Nx, Ny, opts = {}) {
+  const fps = +(opts.fps || 15), scale = Math.max(1, +(opts.scale || 1));
+  const step = Math.max(Math.floor(frames.length / 20), 1), pool = [], NN = Nx * Ny;
   for (let i = 0; i < frames.length; i += step) pool.push(frames[i].field);
-  const all = new Float32Array(pool.length * N * N);
-  pool.forEach((a, i) => all.set(a, i * N * N));
+  const all = new Float32Array(pool.length * NN);
+  pool.forEach((a, i) => all.set(a, i * NN));
   const [lo, hi] = autoRange(name, all);
-  const pal = palette(name), w = N * scale, h = N * scale, head = 22, H = h + head;
+  const pal = palette(name), w = Nx * scale, h = Ny * scale, head = 22, H = h + head;
   const legend = legendLayer(name, lo, hi, w, H);
   const gif = GIFEncoder();
   const delay = Math.max(Math.trunc(1000 / fps), 20);
-  frames.forEach(({ t, field }, fi) => {
-    const q = quantize(field, solid, lo, hi), idx = new Uint8Array(w * H).fill(IDX_WHITE);
+  frames.forEach((fr, fi) => {
+    const q = quantize(fr.field, solid, lo, hi), idx = new Uint8Array(w * H).fill(IDX_WHITE);
     for (let r = 0; r < h; r++) {
-      const src = (N - 1 - Math.floor(r / scale)) * N, dst = (head + r) * w;
+      const src = (Ny - 1 - Math.floor(r / scale)) * Nx, dst = (head + r) * w;
       for (let c = 0; c < w; c++) idx[dst + c] = q[src + Math.floor(c / scale)];
     }
-    const mask = textMask(w, head, (ctx) => ctx.fillText(`t = ${t.toFixed(2).padStart(7)} s   ${LABELS[name]}`, 6, 5));
+    if (opts.overlay) opts.overlay(idx, w, H, head, scale, fr, overlayColor(name));
+    const mask = textMask(w, head, (ctx) => ctx.fillText(`t = ${fr.t.toFixed(2).padStart(7)} s   ${LABELS[name]}`, 6, 5));
     if (mask) for (let i = 0; i < mask.length; i++) if (mask[i]) idx[i] = IDX_BLACK;
     if (legend) {
       for (let y = 0; y < legend.boxH; y++) for (let x = 0; x < legend.boxW; x++) {

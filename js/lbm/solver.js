@@ -242,22 +242,26 @@ export class Solver {
         for (let m = 0; m < b.M; m++) {
           const X = b.X[m] - 0.5, Y = b.Y[m] - 0.5, ix0 = Math.floor(X) - 1, iy0 = Math.floor(Y) - 1;
           for (let a = 0; a < 4; a++) { wx[a] = kernel(X - (ix0 + a)); wy[a] = kernel(Y - (iy0 + a)); }
-          let su = 0, sv = 0;
+          let su = 0, sv = 0, ws = 0;
           for (let bj = 0; bj < 4; bj++) {
             const y = iy0 + bj;
             if (y < 0 || y >= Ny) continue;
             for (let ai = 0; ai < 4; ai++) {
               const x = ix0 + ai;
               if (x < 0 || x >= Nx) continue;
-              const k = y * Nx + x, w = wx[ai] * wy[bj], r2 = 2 * rho[k];
-              su += w * (ux[k] + Fx[k] / r2); sv += w * (uy[k] + Fy[k] / r2);
+              const k = y * Nx + x;
+              if (this.solid[k]) continue;
+              const w = wx[ai] * wy[bj], r2 = 2 * rho[k];
+              su += w * (ux[k] + Fx[k] / r2); sv += w * (uy[k] + Fy[k] / r2); ws += w;
             }
           }
-          b.um[m] = su; b.vm[m] = sv;
+          b.act[m] = ws > 0.5 ? 1 : 0;
+          b.um[m] = ws > 0 ? su / ws : 0; b.vm[m] = ws > 0 ? sv / ws : 0;
         }
       }
       for (const b of this.bodies) {
         for (let m = 0; m < b.M; m++) {
+          if (!b.act[m]) continue;
           const dFx = 2 * (b.U[m] - b.um[m]), dFy = 2 * (b.V[m] - b.vm[m]), ds = b.ds[m];
           b.Fx[m] += dFx; b.Fy[m] += dFy;
           const X = b.X[m] - 0.5, Y = b.Y[m] - 0.5, ix0 = Math.floor(X) - 1, iy0 = Math.floor(Y) - 1;
@@ -269,6 +273,7 @@ export class Solver {
               const x = ix0 + ai;
               if (x < 0 || x >= Nx) continue;
               const k = y * Nx + x, w = wx[ai] * wy[bj] * ds;
+              if (this.solid[k]) continue;
               if (!forced[k]) { forced[k] = 1; touched.push(k); }
               Fx[k] += w * dFx; Fy[k] += w * dFy;
             }

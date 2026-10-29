@@ -54,7 +54,7 @@ export class Body {
     this.X = new Float64Array(this.M); this.Y = new Float64Array(this.M);
     this.U = new Float64Array(this.M); this.V = new Float64Array(this.M);
     this.Fx = new Float64Array(this.M); this.Fy = new Float64Array(this.M);
-    this.um = new Float64Array(this.M); this.vm = new Float64Array(this.M);
+    this.um = new Float64Array(this.M); this.vm = new Float64Array(this.M); this.act = new Uint8Array(this.M);
     const dx = prm.dx, dt = prm.dt, R = Math.max(...rx.map((x, i) => Math.hypot(x, ry[i])), 1) * dx, U = prm.u_max;
     this.dx = dx; this.dt = dt; this.Rlat = R / dx;
     this.torqueScale = rhoPhys * dx ** 4 / dt ** 2;
