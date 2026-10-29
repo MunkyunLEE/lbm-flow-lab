@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LBM Flow Lab</title>
+<meta name="description" content="브라우저에서 바로 실행되는 2D 격자 볼츠만(LBM) 유동 시뮬레이터">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">◧</span> LBM Flow Lab <small>2D · D2Q9 · 브라우저 계산</small></div>
+  <div class="status">
+    <span id="stateBadge" class="badge idle">대기</span>
+    <div class="progress"><div id="progBar"></div></div>
+    <span id="progText" class="mono">–</span>
+  </div>
+  <div class="hdr-actions">
+    <select id="selExample" class="hdr-select" title="예제 케이스 불러오기"><option value="">예제 케이스…</option></select>
+    <button id="btnSaveCase" class="ghost" title="현재 설정을 JSON으로 저장">케이스 저장</button>
+    <label class="ghost btnlike" title="저장한 JSON 불러오기">불러오기<input id="fileCase" type="file" accept=".json" hidden></label>
+  </div>
+</header>
+
+<main>
+<aside id="side">
+
+  <section>
+    <h2><span class="num">1</span>격자판</h2>
+    <div class="grid2">
+      <label>한 변 길이 L <em>mm</em><input id="inL" type="number" min="10" step="100" value="10000"></label>
+      <label>분할 수 N <em>N×N</em><input id="inN" type="number" min="20" max="2000" step="10" value="500"></label>
+    </div>
+    <p class="readout" id="gridInfo"></p>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>유체</h2>
+    <label>프리셋
+      <select id="inPreset">
+        <option value="demo">데모 · 층류 와열 (ν = 5×10⁻³)</option>
+        <option value="air">공기 20 °C (LES)</option>
+        <option value="water">물 20 °C (LES)</option>
+        <option value="custom">사용자 정의</option>
+      </select>
+    </label>
+    <div class="grid2">
+      <label>동점성계수 ν <em>m²/s</em><input id="inNu" type="number" step="any"></label>
+      <label>밀도 ρ <em>kg/m³</em><input id="inRho" type="number" step="any"></label>
+    </div>
+    <div class="grid2">
+      <label class="check"><input id="inLes" type="checkbox"> LES (Smagorinsky)</label>
+      <label>C<sub>s</sub><input id="inCs" type="number" step="0.01" min="0.05" max="0.4" value="0.2"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>장애물 <span class="sub">DXF · mm</span></h2>
+    <div class="row">
+      <label class="btnlike primary-outline">DXF 불러오기<input id="fileDxf" type="file" accept=".dxf" multiple hidden></label>
+      <button id="btnSamples" class="ghost">샘플 5종</button>
+    </div>
+    <ul id="objList" class="list"></ul>
+    <div id="objEditor" class="editor hidden">
+      <div class="grid3">
+        <label>X <em>mm</em><input id="obX" type="number" step="10"></label>
+        <label>Y <em>mm</em><input id="obY" type="number" step="10"></label>
+        <label>회전 <em>°</em><input id="obR" type="number" step="1"></label>
+      </div>
+      <div class="grid3">
+        <label>배율<input id="obS" type="number" step="0.05" min="0.01"></label>
+        <span></span>
+        <button id="obDel" class="danger">삭제</button>
+      </div>
+    </div>
+    <p class="hint">캔버스에서 클릭해 선택 · 드래그로 이동 · 위쪽 ◯ 핸들로 회전 · Delete 키로 삭제</p>
+    <p class="hint">불러온 파일과 계산은 모두 이 브라우저 안에서만 처리되며, 어디에도 전송되지 않습니다.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>경계조건</h2>
+    <div id="edgeRows"></div>
+    <h3>구간(patch) <span class="sub" id="patchCount"></span></h3>
+    <ul id="patchList" class="list"></ul>
+    <div id="patchEditor" class="editor hidden">
+      <div class="grid3">
+        <label>변<select id="paEdge"><option value="left">왼쪽</option><option value="right">오른쪽</option><option value="bottom">아래</option><option value="top">위</option></select></label>
+        <label>시작 <em>mm</em><input id="paS0" type="number" step="10"></label>
+        <label>끝 <em>mm</em><input id="paS1" type="number" step="10"></label>
+      </div>
+      <div class="grid3" id="paVals"></div>
+      <button id="paDel" class="danger wide">구간 삭제</button>
+    </div>
+    <p class="hint">격자판 바깥 색 띠를 드래그하면 그 구간에 새 경계조건이 생깁니다. 변 위 좌표는 왼쪽/오른쪽 변은 y, 아래/위 변은 x 기준입니다.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>해석</h2>
+    <div class="grid3">
+      <label>해석 시간 <em>s</em><input id="inDur" type="number" step="1" min="0.1" value="12"></label>
+      <label>속도 램프 <em>s</em><input id="inRamp" type="number" step="0.5" min="0" value="2"></label>
+      <label>GIF 프레임<input id="inFrames" type="number" step="10" min="10" max="400" value="120"></label>
+    </div>
+    <div class="grid3">
+      <label>u<sub>lat,max</sub><input id="inUlat" type="number" step="0.01" min="0.01" max="0.2" value="0.08"></label>
+      <label>흡수층 <em>%</em><input id="inSponge" type="number" step="1" min="0" max="25" value="8"></label>
+      <span></span>
+    </div>
+    <div id="params" class="params"></div>
+    <div id="warns"></div>
+    <div class="row run-row">
+      <button id="btnMask" class="ghost">복셀 미리보기</button>
+      <button id="btnPause" class="ghost" disabled>일시정지</button>
+      <button id="btnStop" class="danger-outline" disabled>■ Stop</button>
+    </div>
+    <button id="btnRun" class="primary wide run-main">▶ Run</button>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>결과 · GIF</h2>
+    <div class="grid3">
+      <label>표시 필드<select id="inField"><option value="umag">속도 크기 |u|</option><option value="vort">와도 ω</option><option value="pressure">압력 p</option></select></label>
+      <label>FPS<input id="inFps" type="number" min="1" max="50" value="15"></label>
+      <label>배율<select id="inGifScale"><option value="1">×1</option><option value="2">×2</option></select></label>
+    </div>
+    <button id="btnGif" class="primary wide" disabled>GIF 만들기</button>
+    <div id="gifBox" class="gifbox hidden"><img id="gifImg" alt="GIF 미리보기"><a id="gifLink" download="lbm.gif">GIF 다운로드</a></div>
+  </section>
+</aside>
+
+<section id="stage">
+  <canvas id="cv"></canvas>
+  <div class="toolbar">
+    <div class="seg" id="viewSeg">
+      <button data-view="edit" class="on">편집</button>
+      <button data-view="result">결과</button>
+    </div>
+    <label class="check small"><input id="chkMask" type="checkbox"> 복셀</label>
+    <label class="check small"><input id="chkGrid" type="checkbox" checked> 격자선</label>
+    <button id="btnFit" class="ghost small">화면 맞춤</button>
+  </div>
+  <div id="legend" class="legend hidden">
+    <div id="lgName" class="lg-name"></div>
+    <canvas id="legendCv" width="160" height="10"></canvas>
+    <div class="lg-labels"><span id="lgLo"></span><span id="lgHi"></span></div>
+    <div class="lg-labels lg-mean"><span id="lgL"></span><span id="lgR"></span></div>
+  </div>
+  <div id="cursorInfo" class="cursor mono"></div>
+  <div id="toast" class="toast hidden"></div>
+</section>
+</main>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

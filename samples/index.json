@@ -1,0 +1,9 @@
+{
+  "dxf": ["2Dboundary1.dxf", "2Dboundary2.dxf", "2Dboundary3.dxf", "2Dboundary4.dxf", "2Dboundary5.dxf"],
+  "cases": [
+    { "file": "elbow_case_novanes.json", "title": "90° 곡관 · 안내날개 없음" },
+    { "file": "elbow_case_vanes.json", "title": "90° 곡관 · 안내날개 2매" },
+    { "file": "double_elbow_case_novanes.json", "title": "2중 곡관 · 안내날개 없음" },
+    { "file": "double_elbow_case_vanes.json", "title": "2중 곡관 · 안내날개 4매" }
+  ]
+}
